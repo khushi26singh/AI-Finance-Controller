@@ -192,7 +192,15 @@ def exact_match_reconcile(
     for _, row in orphaned_payout.iterrows():
         unmatched_exceptions.append(
             {
-                "payment_id": row[PAYOUT_KEY_COL],
+                # payment_id must always be a reliable, non-null identifier a
+                # human can act on. row[PAYOUT_KEY_COL] (linked_invoice_id) is
+                # exactly the reference Module 2 COULDN'T join -- by
+                # definition it can be blank, "N/A", or truncated garbage
+                # (see Module 1's garble_link simulation), so it must never
+                # be used as the label itself. payout_id is Module 1's own
+                # generated identifier: always present, never garbled, and
+                # traceable straight back to gateway_payouts.csv.
+                "payment_id": row["payout_id"],
                 "invoice_id": None,
                 "payout_id": row["payout_id"],
                 "invoice_amount": None,

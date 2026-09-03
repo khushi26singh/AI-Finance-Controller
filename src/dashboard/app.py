@@ -160,16 +160,33 @@ def run_pipeline(
 
 
 def is_ai_confirmed(resolution: dict) -> bool:
-    """The honesty gate: only a high-confidence 'matched' verdict counts as
-    genuinely AI-resolved. Everything else routes to human review."""
+    """The honesty gate: only a high-confidence 'matched' verdict from the LLM
+    counts as genuinely AI-resolved. A deterministic rule-engine auto-match
+    (see is_rule_resolved) is NEVER counted here, even though it also has
+    match_status == 'matched' and high confidence -- crediting a rule-based
+    match to 'AI' would misrepresent how it was actually resolved."""
+    diag = resolution.get("diagnostics") or {}
+    if diag.get("filtered_by") == "apply_advanced_rules":
+        return False
     return resolution.get("match_status") == "matched" and resolution.get("confidence", 0.0) >= CONFIDENCE_THRESHOLD
+
+
+def is_rule_resolved(resolution: dict) -> bool:
+    """True if apply_advanced_rules() (the pre-LLM deterministic filter in
+    llm_resolver.py) auto-matched this row itself -- meaning the LLM was
+    never called for it at all, not even in live mode."""
+    diag = resolution.get("diagnostics") or {}
+    return diag.get("filtered_by") == "apply_advanced_rules" and resolution.get("match_status") == "matched"
 
 
 def compute_summary_metrics(results: dict) -> dict:
     total_records = len(results["invoices"])
     exact_count = len(results["exact_matches"])
     ai_confirmed = [r for r in results["resolutions"] if is_ai_confirmed(r)]
-    needs_review = [r for r in results["resolutions"] if not is_ai_confirmed(r)]
+    rule_resolved = [r for r in results["resolutions"] if is_rule_resolved(r)]
+    needs_review = [
+        r for r in results["resolutions"] if not is_ai_confirmed(r) and not is_rule_resolved(r)
+    ]
 
     exact_rate = (exact_count / total_records * 100) if total_records else 0.0
     ai_rate = (len(ai_confirmed) / total_records * 100) if total_records else 0.0
@@ -180,6 +197,7 @@ def compute_summary_metrics(results: dict) -> dict:
         "exact_rate": exact_rate,
         "ai_confirmed_count": len(ai_confirmed),
         "ai_rate": ai_rate,
+        "rule_resolved_count": len(rule_resolved),
         "needs_review_count": len(needs_review),
     }
 
@@ -204,7 +222,20 @@ def build_resolved_table(results: dict) -> pd.DataFrame:
         )
 
     for r in results["resolutions"]:
-        if is_ai_confirmed(r):
+        if is_rule_resolved(r):
+            rows.append(
+                {
+                    "payment_id": r["payment_id"],
+                    "resolved_by": "Rule-based auto-match (Module 3 pre-LLM filter)",
+                    "confidence": r["confidence"],
+                    "invoice_amount": None,
+                    "matched_amount": None,
+                    "amount_gap": r.get("amount_gap"),
+                    "audit_reasoning": r.get("reasoning", ""),
+                    "matched_bank_txn_id": r.get("matched_bank_txn_id"),
+                }
+            )
+        elif is_ai_confirmed(r):
             diag = r.get("diagnostics") or {}
             rows.append(
                 {
@@ -224,10 +255,10 @@ def build_resolved_table(results: dict) -> pd.DataFrame:
 
 def build_review_table(results: dict) -> pd.DataFrame:
     """Every genuine exception: things Module 2 couldn't join AND things
-    the AI either couldn't resolve or wasn't confident enough about."""
+    neither the rule engine nor the AI could resolve or was confident about."""
     rows = []
     for r in results["resolutions"]:
-        if not is_ai_confirmed(r):
+        if not is_ai_confirmed(r) and not is_rule_resolved(r):
             diag = r.get("diagnostics") or {}
             rows.append(
                 {
@@ -334,14 +365,23 @@ def render_metrics_banner(metrics: dict) -> None:
         help=(
             f"{metrics['ai_confirmed_count']} of {metrics['total_records']} resolved by the LLM "
             f"with confidence ≥ {CONFIDENCE_THRESHOLD:.0%}. Lower-confidence AI matches are NOT "
-            f"counted here -- they appear in the human review list instead."
+            f"counted here -- they appear in the human review list instead. Rule-engine "
+            f"auto-matches (see below) are also excluded from this rate, since they were never "
+            f"sent to the LLM at all."
         ),
     )
     cols[3].metric(
         "Unresolved Exceptions",
         f"{metrics['needs_review_count']}",
-        help="Genuine exceptions: no confident match was found by either the rules engine or the AI.",
+        help="Genuine exceptions: no confident match was found by the rules engine or the AI.",
     )
+    if metrics["rule_resolved_count"]:
+        st.caption(
+            f"➕ The pre-LLM rule engine (Module 3's `apply_advanced_rules`) also auto-resolved "
+            f"**{metrics['rule_resolved_count']}** exception(s) deterministically -- via exact "
+            f"UTR reference + fee-plausible gap -- with **zero LLM API calls** spent on them. "
+            f"See the Resolved Transactions tab."
+        )
 
 
 def render_resolved_tab(results: dict) -> None:

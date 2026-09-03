@@ -1,77 +1,82 @@
 {
-  "generated_at": "2026-09-01T02:27:05.329708+00:00",
+  "generated_at": "2026-09-02T05:43:25.484204+00:00",
   "provider": "none (mock mode)",
   "model_used": "none (mock mode)",
   "total_exceptions_processed": 34,
   "summary": {
     "matched": 0,
-    "no_match_found": 13,
-    "needs_human_review": 21
+    "no_match_found": 0,
+    "needs_human_review": 34
   },
   "resolutions": [
     {
       "payment_id": "INV-2025005",
       "exception_reason": "no_matching_payout_reference",
-      "match_status": "no_match_found",
+      "match_status": "needs_human_review",
       "matched_bank_txn_id": null,
       "confidence": 0.0,
       "amount_gap": null,
-      "gap_diagnosis": "n/a",
-      "reasoning": "Mock mode: no candidate bank transactions survived shortlisting.",
+      "gap_diagnosis": "unexplained",
+      "reasoning": "Outstanding Payment: No candidate bank transactions found.",
       "diagnostics": {
-        "candidates_considered": 0
+        "candidates_considered": 0,
+        "filtered_by": "apply_advanced_rules"
       }
     },
     {
       "payment_id": "INV-2025006",
       "exception_reason": "no_matching_payout_reference",
-      "match_status": "no_match_found",
+      "match_status": "needs_human_review",
       "matched_bank_txn_id": null,
       "confidence": 0.0,
       "amount_gap": null,
-      "gap_diagnosis": "n/a",
-      "reasoning": "Mock mode: no candidate bank transactions survived shortlisting.",
+      "gap_diagnosis": "unexplained",
+      "reasoning": "Outstanding Payment: No candidate bank transactions found.",
       "diagnostics": {
-        "candidates_considered": 0
+        "candidates_considered": 0,
+        "filtered_by": "apply_advanced_rules"
       }
     },
     {
       "payment_id": "INV-2025012",
       "exception_reason": "no_matching_payout_reference",
-      "match_status": "no_match_found",
+      "match_status": "needs_human_review",
       "matched_bank_txn_id": null,
       "confidence": 0.0,
       "amount_gap": null,
-      "gap_diagnosis": "n/a",
-      "reasoning": "Mock mode: no candidate bank transactions survived shortlisting.",
+      "gap_diagnosis": "unexplained",
+      "reasoning": "Outstanding Payment: No candidate bank transactions found.",
       "diagnostics": {
-        "candidates_considered": 0
+        "candidates_considered": 0,
+        "filtered_by": "apply_advanced_rules"
       }
     },
     {
       "payment_id": "INV-2025014",
       "exception_reason": "no_matching_payout_reference",
-      "match_status": "no_match_found",
+      "match_status": "needs_human_review",
       "matched_bank_txn_id": null,
       "confidence": 0.0,
       "amount_gap": null,
-      "gap_diagnosis": "n/a",
-      "reasoning": "Mock mode: no candidate bank transactions survived shortlisting.",
+      "gap_diagnosis": "unexplained",
+      "reasoning": "Outstanding Payment: No candidate bank transactions found.",
       "diagnostics": {
-        "candidates_considered": 0
+        "candidates_considered": 0,
+        "filtered_by": "apply_advanced_rules"
       }
     },
     {
       "payment_id": "INV-2025015",
       "exception_reason": "no_matching_payout_reference",
-      "match_status": "no_match_found",
+      "match_status": "needs_human_review",
       "matched_bank_txn_id": null,
       "confidence": 0.0,
       "amount_gap": null,
-      "gap_diagnosis": "n/a",
-      "reasoning": "Mock mode: no candidate bank transactions survived shortlisting.",
+      "gap_diagnosis": "unexplained",
+      "reasoning": "Outstanding Payment: No candidate bank transactions found.",
       "diagnostics": {
-        "candidates_considered": 0
+        "candidates_considered": 0,
+        "filtered_by": "apply_advanced_rules"
       }
     },
     {
@@ -146,53 +151,57 @@
     {
       "payment_id": "INV-2025029",
       "exception_reason": "no_matching_payout_reference",
-      "match_status": "no_match_found",
+      "match_status": "needs_human_review",
       "matched_bank_txn_id": null,
       "confidence": 0.0,
       "amount_gap": null,
-      "gap_diagnosis": "n/a",
-      "reasoning": "Mock mode: no candidate bank transactions survived shortlisting.",
+      "gap_diagnosis": "unexplained",
+      "reasoning": "Outstanding Payment: No candidate bank transactions found.",
       "diagnostics": {
-        "candidates_considered": 0
+        "candidates_considered": 0,
+        "filtered_by": "apply_advanced_rules"
       }
     },
     {
       "payment_id": "INV-2025033",
       "exception_reason": "no_matching_payout_reference",
-      "match_status": "no_match_found",
+      "match_status": "needs_human_review",
       "matched_bank_txn_id": null,
       "confidence": 0.0,
       "amount_gap": null,
-      "gap_diagnosis": "n/a",
-      "reasoning": "Mock mode: no candidate bank transactions survived shortlisting.",
+      "gap_diagnosis": "unexplained",
+      "reasoning": "Outstanding Payment: No candidate bank transactions found.",
       "diagnostics": {
-        "candidates_considered": 0
+        "candidates_considered": 0,
+        "filtered_by": "apply_advanced_rules"
       }
     },
     {
       "payment_id": "INV-2025037",
       "exception_reason": "no_matching_payout_reference",
-      "match_status": "no_match_found",
+      "match_status": "needs_human_review",
       "matched_bank_txn_id": null,
       "confidence": 0.0,
       "amount_gap": null,
-      "gap_diagnosis": "n/a",
-      "reasoning": "Mock mode: no candidate bank transactions survived shortlisting.",
+      "gap_diagnosis": "unexplained",
+      "reasoning": "Outstanding Payment: No candidate bank transactions found.",
       "diagnostics": {
-        "candidates_considered": 0
+        "candidates_considered": 0,
+        "filtered_by": "apply_advanced_rules"
       }
     },
     {
       "payment_id": "INV-2025039",
       "exception_reason": "no_matching_payout_reference",
-      "match_status": "no_match_found",
+      "match_status": "needs_human_review",
       "matched_bank_txn_id": null,
       "confidence": 0.0,
       "amount_gap": null,
-      "gap_diagnosis": "n/a",
-      "reasoning": "Mock mode: no candidate bank transactions survived shortlisting.",
+      "gap_diagnosis": "unexplained",
+      "reasoning": "Outstanding Payment: No candidate bank transactions found.",
       "diagnostics": {
-        "candidates_considered": 0
+        "candidates_considered": 0,
+        "filtered_by": "apply_advanced_rules"
       }
     },
     {
@@ -221,14 +230,15 @@
     {
       "payment_id": "INV-2025041",
       "exception_reason": "no_matching_payout_reference",
-      "match_status": "no_match_found",
+      "match_status": "needs_human_review",
       "matched_bank_txn_id": null,
       "confidence": 0.0,
       "amount_gap": null,
-      "gap_diagnosis": "n/a",
-      "reasoning": "Mock mode: no candidate bank transactions survived shortlisting.",
+      "gap_diagnosis": "unexplained",
+      "reasoning": "Outstanding Payment: No candidate bank transactions found.",
       "diagnostics": {
-        "candidates_considered": 0
+        "candidates_considered": 0,
+        "filtered_by": "apply_advanced_rules"
       }
     },
     {
@@ -257,40 +267,43 @@
     {
       "payment_id": "INV-2025043",
       "exception_reason": "no_matching_payout_reference",
-      "match_status": "no_match_found",
+      "match_status": "needs_human_review",
       "matched_bank_txn_id": null,
       "confidence": 0.0,
       "amount_gap": null,
-      "gap_diagnosis": "n/a",
-      "reasoning": "Mock mode: no candidate bank transactions survived shortlisting.",
+      "gap_diagnosis": "unexplained",
+      "reasoning": "Outstanding Payment: No candidate bank transactions found.",
       "diagnostics": {
-        "candidates_considered": 0
+        "candidates_considered": 0,
+        "filtered_by": "apply_advanced_rules"
       }
     },
     {
       "payment_id": "INV-2025047",
       "exception_reason": "no_matching_payout_reference",
-      "match_status": "no_match_found",
+      "match_status": "needs_human_review",
       "matched_bank_txn_id": null,
       "confidence": 0.0,
       "amount_gap": null,
-      "gap_diagnosis": "n/a",
-      "reasoning": "Mock mode: no candidate bank transactions survived shortlisting.",
+      "gap_diagnosis": "unexplained",
+      "reasoning": "Outstanding Payment: No candidate bank transactions found.",
       "diagnostics": {
-        "candidates_considered": 0
+        "candidates_considered": 0,
+        "filtered_by": "apply_advanced_rules"
       }
     },
     {
       "payment_id": "INV-2025051",
       "exception_reason": "no_matching_payout_reference",
-      "match_status": "no_match_found",
+      "match_status": "needs_human_review",
       "matched_bank_txn_id": null,
       "confidence": 0.0,
       "amount_gap": null,
-      "gap_diagnosis": "n/a",
-      "reasoning": "Mock mode: no candidate bank transactions survived shortlisting.",
+      "gap_diagnosis": "unexplained",
+      "reasoning": "Outstanding Payment: No candidate bank transactions found.",
       "diagnostics": {
-        "candidates_considered": 0
+        "candidates_considered": 0,
+        "filtered_by": "apply_advanced_rules"
       }
     },
     {
@@ -435,230 +448,140 @@
       "payment_id": "INV-2025011",
       "exception_reason": "reference_matched_but_amount_mismatch",
       "match_status": "needs_human_review",
-      "matched_bank_txn_id": "TXN000009",
-      "confidence": 0.5,
-      "amount_gap": 18856.42,
+      "matched_bank_txn_id": null,
+      "confidence": 0.0,
+      "amount_gap": null,
       "gap_diagnosis": "unexplained",
-      "reasoning": "Mock mode: heuristic shortlist only, no LLM call was made.",
+      "reasoning": "Severe Amount Mismatch: All candidate gaps exceed the 10% gateway fee threshold.",
       "diagnostics": {
         "candidates_considered": 1,
-        "fee_hypothesis": {
-          "gap_amount": 18856.42,
-          "gap_pct_of_invoice": 46.981,
-          "plausible_mdr_and_tax": false,
-          "expected_gap_range_pct": [
-            1.77,
-            3.54
-          ],
-          "note": "Gap is 46.981% of invoice amount; a typical gateway fee (1.5-3.0%) plus 18.0% GST on that fee would produce a gap of roughly 1.77-3.54%."
-        }
+        "filtered_by": "apply_advanced_rules"
       }
     },
     {
       "payment_id": "INV-2025011",
       "exception_reason": "reference_matched_but_amount_mismatch",
       "match_status": "needs_human_review",
-      "matched_bank_txn_id": "TXN000010",
-      "confidence": 0.5,
-      "amount_gap": 22066.77,
+      "matched_bank_txn_id": null,
+      "confidence": 0.0,
+      "amount_gap": null,
       "gap_diagnosis": "unexplained",
-      "reasoning": "Mock mode: heuristic shortlist only, no LLM call was made.",
+      "reasoning": "Severe Amount Mismatch: All candidate gaps exceed the 10% gateway fee threshold.",
       "diagnostics": {
         "candidates_considered": 1,
-        "fee_hypothesis": {
-          "gap_amount": 22066.77,
-          "gap_pct_of_invoice": 54.979,
-          "plausible_mdr_and_tax": false,
-          "expected_gap_range_pct": [
-            1.77,
-            3.54
-          ],
-          "note": "Gap is 54.979% of invoice amount; a typical gateway fee (1.5-3.0%) plus 18.0% GST on that fee would produce a gap of roughly 1.77-3.54%."
-        }
+        "filtered_by": "apply_advanced_rules"
       }
     },
     {
       "payment_id": "INV-2025019",
       "exception_reason": "reference_matched_but_amount_mismatch",
       "match_status": "needs_human_review",
-      "matched_bank_txn_id": "TXN000014",
-      "confidence": 0.5,
-      "amount_gap": 102984.04,
+      "matched_bank_txn_id": null,
+      "confidence": 0.0,
+      "amount_gap": null,
       "gap_diagnosis": "unexplained",
-      "reasoning": "Mock mode: heuristic shortlist only, no LLM call was made.",
+      "reasoning": "Severe Amount Mismatch: All candidate gaps exceed the 10% gateway fee threshold.",
       "diagnostics": {
         "candidates_considered": 1,
-        "fee_hypothesis": {
-          "gap_amount": 102984.04,
-          "gap_pct_of_invoice": 62.104,
-          "plausible_mdr_and_tax": false,
-          "expected_gap_range_pct": [
-            1.77,
-            3.54
-          ],
-          "note": "Gap is 62.104% of invoice amount; a typical gateway fee (1.5-3.0%) plus 18.0% GST on that fee would produce a gap of roughly 1.77-3.54%."
-        }
+        "filtered_by": "apply_advanced_rules"
       }
     },
     {
       "payment_id": "INV-2025019",
       "exception_reason": "reference_matched_but_amount_mismatch",
       "match_status": "needs_human_review",
-      "matched_bank_txn_id": "TXN000015",
-      "confidence": 0.5,
-      "amount_gap": 66532.74,
+      "matched_bank_txn_id": null,
+      "confidence": 0.0,
+      "amount_gap": null,
       "gap_diagnosis": "unexplained",
-      "reasoning": "Mock mode: heuristic shortlist only, no LLM call was made.",
+      "reasoning": "Severe Amount Mismatch: All candidate gaps exceed the 10% gateway fee threshold.",
       "diagnostics": {
         "candidates_considered": 1,
-        "fee_hypothesis": {
-          "gap_amount": 66532.74,
-          "gap_pct_of_invoice": 40.123,
-          "plausible_mdr_and_tax": false,
-          "expected_gap_range_pct": [
-            1.77,
-            3.54
-          ],
-          "note": "Gap is 40.123% of invoice amount; a typical gateway fee (1.5-3.0%) plus 18.0% GST on that fee would produce a gap of roughly 1.77-3.54%."
-        }
+        "filtered_by": "apply_advanced_rules"
       }
     },
     {
       "payment_id": "INV-2025030",
       "exception_reason": "reference_matched_but_amount_mismatch",
       "match_status": "needs_human_review",
-      "matched_bank_txn_id": "TXN000025",
-      "confidence": 0.5,
-      "amount_gap": 45004.25,
+      "matched_bank_txn_id": null,
+      "confidence": 0.0,
+      "amount_gap": null,
       "gap_diagnosis": "unexplained",
-      "reasoning": "Mock mode: heuristic shortlist only, no LLM call was made.",
+      "reasoning": "Severe Amount Mismatch: All candidate gaps exceed the 10% gateway fee threshold.",
       "diagnostics": {
         "candidates_considered": 1,
-        "fee_hypothesis": {
-          "gap_amount": 45004.25,
-          "gap_pct_of_invoice": 66.15,
-          "plausible_mdr_and_tax": false,
-          "expected_gap_range_pct": [
-            1.77,
-            3.54
-          ],
-          "note": "Gap is 66.15% of invoice amount; a typical gateway fee (1.5-3.0%) plus 18.0% GST on that fee would produce a gap of roughly 1.77-3.54%."
-        }
+        "filtered_by": "apply_advanced_rules"
       }
     },
     {
       "payment_id": "INV-2025030",
       "exception_reason": "reference_matched_but_amount_mismatch",
       "match_status": "needs_human_review",
-      "matched_bank_txn_id": "TXN000026",
-      "confidence": 0.5,
-      "amount_gap": 24564.07,
+      "matched_bank_txn_id": null,
+      "confidence": 0.0,
+      "amount_gap": null,
       "gap_diagnosis": "unexplained",
-      "reasoning": "Mock mode: heuristic shortlist only, no LLM call was made.",
+      "reasoning": "Severe Amount Mismatch: All candidate gaps exceed the 10% gateway fee threshold.",
       "diagnostics": {
         "candidates_considered": 1,
-        "fee_hypothesis": {
-          "gap_amount": 24564.07,
-          "gap_pct_of_invoice": 36.106,
-          "plausible_mdr_and_tax": false,
-          "expected_gap_range_pct": [
-            1.77,
-            3.54
-          ],
-          "note": "Gap is 36.106% of invoice amount; a typical gateway fee (1.5-3.0%) plus 18.0% GST on that fee would produce a gap of roughly 1.77-3.54%."
-        }
+        "filtered_by": "apply_advanced_rules"
       }
     },
     {
       "payment_id": "INV-2025032",
       "exception_reason": "reference_matched_but_amount_mismatch",
       "match_status": "needs_human_review",
-      "matched_bank_txn_id": "TXN000028",
-      "confidence": 0.5,
-      "amount_gap": 85039.2,
+      "matched_bank_txn_id": null,
+      "confidence": 0.0,
+      "amount_gap": null,
       "gap_diagnosis": "unexplained",
-      "reasoning": "Mock mode: heuristic shortlist only, no LLM call was made.",
+      "reasoning": "Severe Amount Mismatch: All candidate gaps exceed the 10% gateway fee threshold.",
       "diagnostics": {
         "candidates_considered": 1,
-        "fee_hypothesis": {
-          "gap_amount": 85039.2,
-          "gap_pct_of_invoice": 51.734,
-          "plausible_mdr_and_tax": false,
-          "expected_gap_range_pct": [
-            1.77,
-            3.54
-          ],
-          "note": "Gap is 51.734% of invoice amount; a typical gateway fee (1.5-3.0%) plus 18.0% GST on that fee would produce a gap of roughly 1.77-3.54%."
-        }
+        "filtered_by": "apply_advanced_rules"
       }
     },
     {
       "payment_id": "INV-2025032",
       "exception_reason": "reference_matched_but_amount_mismatch",
       "match_status": "needs_human_review",
-      "matched_bank_txn_id": "TXN000029",
-      "confidence": 0.5,
-      "amount_gap": 82642.43,
+      "matched_bank_txn_id": null,
+      "confidence": 0.0,
+      "amount_gap": null,
       "gap_diagnosis": "unexplained",
-      "reasoning": "Mock mode: heuristic shortlist only, no LLM call was made.",
+      "reasoning": "Severe Amount Mismatch: All candidate gaps exceed the 10% gateway fee threshold.",
       "diagnostics": {
         "candidates_considered": 1,
-        "fee_hypothesis": {
-          "gap_amount": 82642.43,
-          "gap_pct_of_invoice": 50.276,
-          "plausible_mdr_and_tax": false,
-          "expected_gap_range_pct": [
-            1.77,
-            3.54
-          ],
-          "note": "Gap is 50.276% of invoice amount; a typical gateway fee (1.5-3.0%) plus 18.0% GST on that fee would produce a gap of roughly 1.77-3.54%."
-        }
+        "filtered_by": "apply_advanced_rules"
       }
     },
     {
       "payment_id": "INV-2025049",
       "exception_reason": "reference_matched_but_amount_mismatch",
       "match_status": "needs_human_review",
-      "matched_bank_txn_id": "TXN000040",
-      "confidence": 0.5,
-      "amount_gap": 133729.4,
+      "matched_bank_txn_id": null,
+      "confidence": 0.0,
+      "amount_gap": null,
       "gap_diagnosis": "unexplained",
-      "reasoning": "Mock mode: heuristic shortlist only, no LLM call was made.",
+      "reasoning": "Severe Amount Mismatch: All candidate gaps exceed the 10% gateway fee threshold.",
       "diagnostics": {
         "candidates_considered": 1,
-        "fee_hypothesis": {
-          "gap_amount": 133729.4,
-          "gap_pct_of_invoice": 61.393,
-          "plausible_mdr_and_tax": false,
-          "expected_gap_range_pct": [
-            1.77,
-            3.54
-          ],
-          "note": "Gap is 61.393% of invoice amount; a typical gateway fee (1.5-3.0%) plus 18.0% GST on that fee would produce a gap of roughly 1.77-3.54%."
-        }
+        "filtered_by": "apply_advanced_rules"
       }
     },
     {
       "payment_id": "INV-2025049",
       "exception_reason": "reference_matched_but_amount_mismatch",
       "match_status": "needs_human_review",
-      "matched_bank_txn_id": "TXN000041",
-      "confidence": 0.5,
-      "amount_gap": 89134.39,
+      "matched_bank_txn_id": null,
+      "confidence": 0.0,
+      "amount_gap": null,
       "gap_diagnosis": "unexplained",
-      "reasoning": "Mock mode: heuristic shortlist only, no LLM call was made.",
+      "reasoning": "Severe Amount Mismatch: All candidate gaps exceed the 10% gateway fee threshold.",
       "diagnostics": {
         "candidates_considered": 1,
-        "fee_hypothesis": {
-          "gap_amount": 89134.39,
-          "gap_pct_of_invoice": 40.92,
-          "plausible_mdr_and_tax": false,
-          "expected_gap_range_pct": [
-            1.77,
-            3.54
-          ],
-          "note": "Gap is 40.92% of invoice amount; a typical gateway fee (1.5-3.0%) plus 18.0% GST on that fee would produce a gap of roughly 1.77-3.54%."
-        }
+        "filtered_by": "apply_advanced_rules"
       }
     }
   ]

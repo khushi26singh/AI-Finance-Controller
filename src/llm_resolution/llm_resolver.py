@@ -281,6 +281,147 @@ def compute_fee_hypothesis(invoice_amount: float | None, candidate_amount: float
     )
 
 
+# Any candidate whose gap exceeds this is economically implausible as a fee/tax
+# explanation -- real MDR + GST tops out well under this (see compute_fee_hypothesis),
+# so a gap this large is not something an LLM needs to "reason" about.
+MASSIVE_VARIANCE_THRESHOLD_PCT = 0.10  # 10%
+
+
+def _no_llm_result(
+    match_status: str,
+    reasoning: str,
+    matched_bank_txn_id: str | None = None,
+    confidence: float = 0.0,
+    gap_diagnosis: str = "unexplained",
+    amount_gap: float | None = None,
+) -> dict:
+    """Consistent return shape for every apply_advanced_rules() outcome that
+    does NOT require an LLM call -- whether that's a rejection (needs_human_review)
+    or a deterministic auto-match (matched)."""
+    return {
+        "needs_llm": False,
+        "match_status": match_status,
+        "reasoning": reasoning,
+        "matched_bank_txn_id": matched_bank_txn_id,
+        "confidence": confidence,
+        "gap_diagnosis": gap_diagnosis,
+        "amount_gap": amount_gap,
+        "plausible_candidates": [],
+    }
+
+
+def apply_advanced_rules(
+    invoice_amount: float | None, candidate_bank_txns: list[dict] | None
+) -> dict:
+    """
+    Deterministic pre-LLM filter. Runs immediately after candidate shortlisting
+    and before any LLM call (mock or live) to cut exceptions that don't need --
+    and shouldn't get -- semantic reasoning spent on them.
+
+    Three rules, applied in order:
+
+    1. Zero-Candidate Short-Circuit: no candidates at all means there's nothing
+       for the LLM to reason over. Don't call it -- go straight to human review.
+    2. Massive Variance Filter: if every remaining candidate's amount gap is
+       economically implausible as a fee/tax explanation (> 10%), asking the
+       LLM to pick one anyway just risks it rationalizing a bad match. Skip the
+       call and surface the gap directly instead.
+    3. High-Confidence Deterministic Auto-Match: if exactly one candidate is
+       anchored by an EXACT reference match (UTR substring -- the strongest
+       evidence a bank credit belongs to this specific invoice/payout, not
+       just amount/date coincidence) AND its gap is tight enough to be an
+       obvious gateway fee (inside the real MDR+GST range, not just under the
+       generous 10% ceiling), there is no genuine semantic ambiguity left for
+       an LLM to adjudicate. Auto-confirm it deterministically -- same
+       "deterministic first" principle as Module 2's exact match, just applied
+       one layer deeper, where the reference match is exact but the amount
+       needed a fee explanation to close the loop.
+
+    Returns a dict:
+        needs_llm             -- False if a rule fired and reconciliation is
+                                  already decided; True if the LLM should run.
+        match_status           -- set only when needs_llm is False. Either
+                                  "needs_human_review" (rules 1/2) or
+                                  "matched" (rule 3).
+        reasoning               -- set only when needs_llm is False.
+        matched_bank_txn_id    -- set only when match_status == "matched".
+        confidence              -- set only when match_status == "matched".
+        gap_diagnosis           -- set only when match_status == "matched".
+        amount_gap              -- set only when match_status == "matched".
+        plausible_candidates   -- candidates worth sending to the LLM (empty
+                                  list when needs_llm is False).
+    """
+    # Rule 1: Zero-Candidate Short-Circuit.
+    if not candidate_bank_txns:
+        return _no_llm_result(
+            "needs_human_review",
+            "Outstanding Payment: No candidate bank transactions found.",
+        )
+
+    # Can't compute a percentage gap without a valid, non-zero invoice amount.
+    # Fail open to the LLM rather than divide by zero or silently drop the row.
+    if invoice_amount is None or pd.isna(invoice_amount) or invoice_amount == 0:
+        return {
+            "needs_llm": True,
+            "match_status": None,
+            "reasoning": None,
+            "plausible_candidates": candidate_bank_txns,
+        }
+
+    # Rule 2: Massive Variance Filter.
+    gaps_pct = []
+    for txn in candidate_bank_txns:
+        bank_amount = txn.get("amount")
+        if bank_amount is None:
+            continue
+        gaps_pct.append(abs(invoice_amount - bank_amount) / invoice_amount)
+
+    if not gaps_pct:
+        # Candidates exist but none carried a usable amount -- a data quality
+        # gap, not a "massive variance" verdict. Don't mislabel it as one;
+        # route to review honestly instead of guessing.
+        return _no_llm_result(
+            "needs_human_review",
+            "Data Quality Issue: candidate bank transactions had no usable amount field.",
+        )
+
+    if all(gap > MASSIVE_VARIANCE_THRESHOLD_PCT for gap in gaps_pct):
+        return _no_llm_result(
+            "needs_human_review",
+            "Severe Amount Mismatch: All candidate gaps exceed the "
+            f"{MASSIVE_VARIANCE_THRESHOLD_PCT:.0%} gateway fee threshold.",
+        )
+
+    # Rule 3: High-Confidence Deterministic Auto-Match.
+    utr_anchored = [
+        txn for txn in candidate_bank_txns if txn.get("match_basis") == "exact_utr_substring"
+    ]
+    if len(utr_anchored) == 1:
+        txn = utr_anchored[0]
+        hyp = compute_fee_hypothesis(invoice_amount, txn.get("amount"))
+        if hyp is not None and hyp.plausible_mdr_and_tax:
+            return _no_llm_result(
+                "matched",
+                (
+                    f"Rule-Resolved: bank transaction {txn['txn_id']} is linked by an exact "
+                    f"payment-reference (UTR) match, and the {hyp.gap_pct_of_invoice:.1f}% gap "
+                    "falls within the expected gateway fee + GST range -- no semantic ambiguity "
+                    "for the LLM to adjudicate, so it was never called."
+                ),
+                matched_bank_txn_id=txn["txn_id"],
+                confidence=0.95,
+                gap_diagnosis="mdr_fee_and_tax",
+                amount_gap=hyp.gap_amount,
+            )
+
+    return {
+        "needs_llm": True,
+        "match_status": None,
+        "reasoning": None,
+        "plausible_candidates": candidate_bank_txns,
+    }
+
+
 # --------------------------------------------------------------------------- #
 # Step 4: LLM semantic reasoning (only runs on the shortlisted candidates)
 # --------------------------------------------------------------------------- #
@@ -571,14 +712,20 @@ def _throttle_before_call(provider: str) -> None:
     _last_call_time[provider] = time.monotonic()
 
 
-def _parse_retry_delay_seconds(error_text: str, default: float = 20.0) -> float:
-    """Extract a provider-suggested retry delay from an error message, if present."""
+def _parse_retry_delay_seconds(error_text: str, attempt: int) -> float:
+    """
+    Extract a provider-suggested retry delay from an error message if one is
+    present (rate-limit errors usually include one). Otherwise fall back to
+    exponential backoff -- appropriate for transient network errors (dropped
+    connections, timeouts, brief 5xx blips) that don't come with a suggested
+    wait time.
+    """
     match = re.search(r"retry in ([\d.]+)\s*s", error_text, re.IGNORECASE)
     if not match:
         match = re.search(r"retryDelay['\"]?\s*[:=]\s*['\"]?([\d.]+)s", error_text)
     if match:
         return float(match.group(1)) + 1.0  # small safety buffer
-    return default
+    return min(5.0 * (2 ** attempt), 30.0)  # 5s, 10s, 20s, capped at 30s
 
 
 def call_llm_for_resolution(
@@ -657,37 +804,17 @@ def call_llm_for_resolution(
 
         except Exception as exc:
             error_text = str(exc)
-            is_rate_limit = any(
-                marker in error_text
-                for marker in ["429", "RESOURCE_EXHAUSTED", "rate_limit", "rate limit", "quota"]
-            )
+
+            # Only a confirmed "this model ID doesn't exist / isn't callable"
+            # error should hard-stop the whole run -- retrying can't fix that.
+            # Everything else (rate limits, dropped connections, read
+            # timeouts, brief 5xx blips -- e.g. the httpx.ReadError /
+            # WinError 10053 "connection aborted" seen on flaky networks) is
+            # treated as transient and retried with backoff.
             is_model_error = any(
                 marker in error_text
                 for marker in ["model_not_found", "does not exist", "NOT_FOUND", "404"]
             )
-
-            if is_rate_limit and attempt < MAX_RATE_LIMIT_RETRIES:
-                delay = _parse_retry_delay_seconds(error_text)
-                print(
-                    f"Rate limited by {provider} (attempt {attempt + 1}/{MAX_RATE_LIMIT_RETRIES}); "
-                    f"waiting {delay:.0f}s before retrying payment_id={row.get('payment_id')}..."
-                )
-                time.sleep(delay)
-                continue  # retry this row
-
-            if is_rate_limit:
-                # Retries exhausted -- don't crash the whole batch over one
-                # exception. Flag it for a human/re-run instead and move on.
-                return {
-                    "match_status": "needs_human_review",
-                    "matched_bank_txn_id": None,
-                    "confidence": 0.0,
-                    "gap_diagnosis": "unexplained",
-                    "reasoning": (
-                        f"Skipped: {provider} rate limit persisted after {MAX_RATE_LIMIT_RETRIES} "
-                        "retries. Re-run the pipeline later to resolve this exception."
-                    ),
-                }
 
             if is_model_error:
                 # Model IDs on free-tier providers get deprecated/renamed
@@ -706,7 +833,28 @@ def call_llm_for_resolution(
                     f"(Gemini) which auto-resolves to a currently-working model."
                 ) from exc
 
-            raise
+            if attempt < MAX_RATE_LIMIT_RETRIES:
+                delay = _parse_retry_delay_seconds(error_text, attempt)
+                print(
+                    f"Transient error calling {provider} ({type(exc).__name__}, "
+                    f"attempt {attempt + 1}/{MAX_RATE_LIMIT_RETRIES}); waiting {delay:.0f}s "
+                    f"before retrying payment_id={row.get('payment_id')}..."
+                )
+                time.sleep(delay)
+                continue  # retry this row
+
+            # Retries exhausted -- don't crash the whole batch over one
+            # exception. Flag it for a human/re-run instead and move on.
+            return {
+                "match_status": "needs_human_review",
+                "matched_bank_txn_id": None,
+                "confidence": 0.0,
+                "gap_diagnosis": "unexplained",
+                "reasoning": (
+                    f"Skipped: repeated {provider} errors ({type(exc).__name__}) persisted after "
+                    f"{MAX_RATE_LIMIT_RETRIES} retries. Re-run the pipeline later to resolve this exception."
+                ),
+            }
 
     # Defensive fallback -- should not happen with tool_choice forcing the call.
     return {
@@ -722,6 +870,37 @@ def call_llm_for_resolution(
 # Step 5: Orchestration
 # --------------------------------------------------------------------------- #
 
+def select_reference_amount(row: pd.Series) -> float | None:
+    """
+    Pick the correct ground-truth amount to compare a candidate bank credit
+    against.
+
+    For 'reference_matched_but_amount_mismatch' rows, Module 2 already
+    identified the SPECIFIC payout this row represents -- so the right
+    comparison is against that payout's own gross_amount (e.g. one
+    installment of a split payment), never the invoice's full amount.
+    Using the full invoice amount here was a real bug found by analyzing a
+    real run: it made an ordinary ~2% gateway-fee gap on a single
+    installment look like a 40-60% "severe mismatch", because the
+    installment was being compared against the whole invoice instead of
+    itself.
+
+    For rows with no linked payout at all (no_matching_payout_reference /
+    no_matching_invoice_reference), there is no specific installment to
+    anchor to, so the invoice amount (falling back to gross_amount if
+    missing) is still the correct reference.
+    """
+    if row.get("exception_reason") == "reference_matched_but_amount_mismatch":
+        gross = row.get("gross_amount")
+        if gross is not None and not pd.isna(gross):
+            return gross
+
+    reference_amount = row.get("invoice_amount")
+    if pd.isna(reference_amount):
+        reference_amount = row.get("gross_amount")
+    return reference_amount
+
+
 def resolve_exceptions(
     enriched_exceptions: pd.DataFrame,
     bank: pd.DataFrame,
@@ -735,52 +914,63 @@ def resolve_exceptions(
     for _, row in enriched_exceptions.iterrows():
         candidates = shortlist_candidates(row, bank)
 
-        reference_amount = row.get("invoice_amount")
-        if pd.isna(reference_amount):
-            reference_amount = row.get("gross_amount")
+        reference_amount = select_reference_amount(row)
+
+        # --- Pre-LLM deterministic filter (runs BEFORE mock or live LLM calls) ---
+        # This is the injection point: apply_advanced_rules gets first look at
+        # every exception, before any API call -- mock or live -- is even
+        # considered. If it can already decide the outcome deterministically,
+        # the LLM is never invoked for this row.
+        filter_result = apply_advanced_rules(reference_amount, candidates)
+
+        if not filter_result["needs_llm"]:
+            resolutions.append(
+                ExceptionResolution(
+                    payment_id=row.get("payment_id"),
+                    exception_reason=row.get("exception_reason"),
+                    match_status=filter_result["match_status"],
+                    matched_bank_txn_id=filter_result.get("matched_bank_txn_id"),
+                    confidence=filter_result.get("confidence", 0.0),
+                    amount_gap=filter_result.get("amount_gap"),
+                    gap_diagnosis=filter_result.get("gap_diagnosis", "unexplained"),
+                    reasoning=filter_result["reasoning"],
+                    diagnostics={
+                        "candidates_considered": len(candidates),
+                        "filtered_by": "apply_advanced_rules",
+                    },
+                )
+            )
+            continue
+
+        plausible_candidates = filter_result["plausible_candidates"]
 
         fee_hypotheses = {
             c["txn_id"]: hyp
-            for c in candidates
+            for c in plausible_candidates
             if (hyp := compute_fee_hypothesis(reference_amount, c["amount"])) is not None
         }
 
         if mock or client is None:
             # Deterministic-only mode: report the best heuristic candidate
             # without spending an LLM call. Useful for local testing/CI.
-            if candidates:
-                best = candidates[0]
-                hyp = fee_hypotheses.get(best["txn_id"])
-                resolutions.append(
-                    ExceptionResolution(
-                        payment_id=row.get("payment_id"),
-                        exception_reason=row.get("exception_reason"),
-                        match_status="needs_human_review",
-                        matched_bank_txn_id=best["txn_id"],
-                        confidence=0.5 if best["match_basis"] == "exact_utr_substring" else 0.3,
-                        amount_gap=hyp.gap_amount if hyp else None,
-                        gap_diagnosis="mdr_fee_and_tax" if (hyp and hyp.plausible_mdr_and_tax) else "unexplained",
-                        reasoning="Mock mode: heuristic shortlist only, no LLM call was made.",
-                        diagnostics={"candidates_considered": len(candidates), "fee_hypothesis": hyp.__dict__ if hyp else None},
-                    )
+            best = plausible_candidates[0]
+            hyp = fee_hypotheses.get(best["txn_id"])
+            resolutions.append(
+                ExceptionResolution(
+                    payment_id=row.get("payment_id"),
+                    exception_reason=row.get("exception_reason"),
+                    match_status="needs_human_review",
+                    matched_bank_txn_id=best["txn_id"],
+                    confidence=0.5 if best["match_basis"] == "exact_utr_substring" else 0.3,
+                    amount_gap=hyp.gap_amount if hyp else None,
+                    gap_diagnosis="mdr_fee_and_tax" if (hyp and hyp.plausible_mdr_and_tax) else "unexplained",
+                    reasoning="Mock mode: heuristic shortlist only, no LLM call was made.",
+                    diagnostics={"candidates_considered": len(plausible_candidates), "fee_hypothesis": hyp.__dict__ if hyp else None},
                 )
-            else:
-                resolutions.append(
-                    ExceptionResolution(
-                        payment_id=row.get("payment_id"),
-                        exception_reason=row.get("exception_reason"),
-                        match_status="no_match_found",
-                        matched_bank_txn_id=None,
-                        confidence=0.0,
-                        amount_gap=None,
-                        gap_diagnosis="n/a",
-                        reasoning="Mock mode: no candidate bank transactions survived shortlisting.",
-                        diagnostics={"candidates_considered": 0},
-                    )
-                )
+            )
             continue
 
-        llm_result = call_llm_for_resolution(provider, model_name, client, row, candidates, fee_hypotheses)
+        llm_result = call_llm_for_resolution(provider, model_name, client, row, plausible_candidates, fee_hypotheses)
         matched_hyp = fee_hypotheses.get(llm_result.get("matched_bank_txn_id"))
 
         resolutions.append(
@@ -794,7 +984,7 @@ def resolve_exceptions(
                 gap_diagnosis=llm_result.get("gap_diagnosis", "unexplained"),
                 reasoning=llm_result.get("reasoning", ""),
                 diagnostics={
-                    "candidates_considered": len(candidates),
+                    "candidates_considered": len(plausible_candidates),
                     "fee_hypothesis": matched_hyp.__dict__ if matched_hyp else None,
                     "model_used": model_name,
                     "provider": provider,
