@@ -16,3 +16,9 @@ __pycache__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Run logs (persisted locally for demo evidence, not meant to be committed)
+logs/
+
+# pytest cache
+.pytest_cache/

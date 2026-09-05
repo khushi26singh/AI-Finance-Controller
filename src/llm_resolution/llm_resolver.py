@@ -60,6 +60,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import os
 import re
 import time
@@ -124,6 +125,44 @@ CANDIDATE_DATE_WINDOW_DAYS = 15          # payout usually settles within ~10 day
 # judgment.
 TYPICAL_MDR_FEE_PCT_RANGE = (1.5, 3.0)   # gateway fee as % of gross amount
 GST_ON_FEE_PCT = 18.0                    # GST charged on top of the fee itself
+
+
+# --------------------------------------------------------------------------- #
+# Logging -- persisted to a file, not just stdout. Retry/backoff/model-
+# fallback messages are exactly the evidence you want on hand if a live demo
+# hits a 429 or a stale model ID; losing them the moment the terminal
+# scrolls turns a "we handled this gracefully" story into an unprovable one.
+# --------------------------------------------------------------------------- #
+
+logger = logging.getLogger("llm_resolver")
+
+
+def configure_logging(log_dir: Path | None, quiet: bool = False) -> Path | None:
+    """
+    Attach a console handler (always) and, unless log_dir is None, a file
+    handler writing to a timestamped file under log_dir. Returns the log
+    file path so the caller can tell the user where to find it, or None if
+    file logging was disabled.
+    """
+    logger.setLevel(logging.INFO)
+    logger.handlers.clear()  # avoid duplicate handlers if called more than once (e.g. in tests)
+
+    formatter = logging.Formatter("%(asctime)s  %(levelname)-7s  %(message)s", datefmt="%H:%M:%S")
+
+    if not quiet:
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(formatter)
+        logger.addHandler(console_handler)
+
+    if log_dir is None:
+        return None
+
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_path = log_dir / f"module3_run_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+    file_handler = logging.FileHandler(log_path, encoding="utf-8")
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+    return log_path
 
 
 # --------------------------------------------------------------------------- #
@@ -581,7 +620,7 @@ def list_available_models(provider: str, client: "anthropic.Anthropic | groq.Gro
         # Listing is best-effort, but silently swallowing the error here
         # made a real problem (bad key, network block, wrong SDK version)
         # invisible -- print it so it's actually diagnosable.
-        print(f"Note: could not list available {provider} models ({type(exc).__name__}: {exc}). Trying the configured model as-is.")
+        logger.warning(f"Could not list available {provider} models ({type(exc).__name__}: {exc}). Trying the configured model as-is.")
         return []
 
     return []
@@ -634,8 +673,8 @@ def resolve_working_model(
 
     fallback = pick_fallback_model(available)
     if fallback:
-        print(
-            f"Note: model '{requested_model}' is not available on {provider} for this API key. "
+        logger.warning(
+            f"Model '{requested_model}' is not available on {provider} for this API key. "
             f"Auto-selected '{fallback}' instead (detected from {len(available)} available models)."
         )
         return fallback
@@ -835,7 +874,7 @@ def call_llm_for_resolution(
 
             if attempt < MAX_RATE_LIMIT_RETRIES:
                 delay = _parse_retry_delay_seconds(error_text, attempt)
-                print(
+                logger.warning(
                     f"Transient error calling {provider} ({type(exc).__name__}, "
                     f"attempt {attempt + 1}/{MAX_RATE_LIMIT_RETRIES}); waiting {delay:.0f}s "
                     f"before retrying payment_id={row.get('payment_id')}..."
@@ -1061,17 +1100,32 @@ def main() -> None:
         action="store_true",
         help="Print the model IDs this API key actually has access to for --provider, then exit.",
     )
+    parser.add_argument(
+        "--log-dir",
+        type=str,
+        default=str(project_root / "logs"),
+        help="Directory to write a timestamped run log to (in addition to console output). Default: logs/",
+    )
+    parser.add_argument(
+        "--no-log-file",
+        action="store_true",
+        help="Disable writing a log file; console output only.",
+    )
     args = parser.parse_args()
+
+    log_path = configure_logging(None if args.no_log_file else Path(args.log_dir))
+    if log_path:
+        logger.info(f"Logging this run to {log_path}")
 
     if args.list_models:
         client = get_client(args.provider)
         models = list_available_models(args.provider, client)
         if models:
-            print(f"Models available to this {args.provider} API key:")
+            logger.info(f"Models available to this {args.provider} API key:")
             for name in models:
-                print(f"  {name}")
+                logger.info(f"  {name}")
         else:
-            print(f"Could not retrieve a model list for provider '{args.provider}'.")
+            logger.info(f"Could not retrieve a model list for provider '{args.provider}'.")
         return
 
     processed_dir = Path(args.processed_dir)
@@ -1102,11 +1156,11 @@ def main() -> None:
 
     matched = sum(1 for r in resolutions if r.match_status == "matched")
     label = "mock mode" if args.mock else f"{args.provider} / {model_name}"
-    print(f"Processed {len(resolutions)} exceptions ({label}).")
-    print(f"  matched:            {matched}")
-    print(f"  no_match_found:     {sum(1 for r in resolutions if r.match_status == 'no_match_found')}")
-    print(f"  needs_human_review: {sum(1 for r in resolutions if r.match_status == 'needs_human_review')}")
-    print(f"Report written to {out_path}")
+    logger.info(f"Processed {len(resolutions)} exceptions ({label}).")
+    logger.info(f"  matched:            {matched}")
+    logger.info(f"  no_match_found:     {sum(1 for r in resolutions if r.match_status == 'no_match_found')}")
+    logger.info(f"  needs_human_review: {sum(1 for r in resolutions if r.match_status == 'needs_human_review')}")
+    logger.info(f"Report written to {out_path}")
 
 
 if __name__ == "__main__":
